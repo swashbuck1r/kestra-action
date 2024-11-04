@@ -10,6 +10,9 @@ inputs:
   flow:
     description: 'Id of the flow to run.'
     required: true
+  parameters:
+    description: 'Parameters as JSON'
+    default: '{}'
 
 outputs:
   flow_outputs:
@@ -29,6 +32,8 @@ runs:
     - id: kestra
       name: Run Kestra flow
       uses: docker://swashbuck1r/kestra-action:0.0.3
+      env:
+        PARAMETERS_JSON: ${{ inputs.parameters }} 
       with:
         entrypoint: /app/run.sh
         args: |

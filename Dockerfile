@@ -7,6 +7,7 @@ RUN apt-get update -y && \
 
 COPY --chown=kestra:kestra upload-and-run.sh /app/upload-and-run.sh
 COPY --chown=kestra:kestra run.sh /app/run.sh
+COPY --chown=kestra:kestra stream-logs.sh /app/stream-logs.sh
 
 USER kestra
 ENTRYPOINT ["./run.sh"]

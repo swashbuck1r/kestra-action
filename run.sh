@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -x
+set +x
 namespace="company.team"
 flow_name="myflow"
 
@@ -27,7 +27,7 @@ fi
 namespace="$1"
 flow_name="$2"
 
-/app/kestra server local > server.log &
+/app/kestra server local &> server.log &
 
 # wait for the server to start
 
@@ -36,15 +36,15 @@ max_attempts=10
 
 until $(curl --output /dev/null --silent --head --fail http://localhost:8080); do
     if [ ${attempt_counter} -eq ${max_attempts} ];then
-      echo "Max attempts reached"
+      echo "Server startup failed: max attempts reached"
       exit 1
     fi
 
-    printf '.'
+    # printf '.'
     attempt_counter=$(($attempt_counter+1))
     sleep 5
 done
 
-/app/upload-and-run.sh "$namespace" "$flow_name"
+./upload-and-run.sh "$namespace" "$flow_name"
 
 

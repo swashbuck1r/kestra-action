@@ -22,6 +22,10 @@ if [[ -z "${CLOUDBEES_OUTPUTS}" ]]; then
   exit 1
 fi
 
+if [[ -z "${PARAMETERS_JSON}" ]]; then
+  PARAMETERS_JSON='{ }'
+fi
+
 namespace="$1"
 flow_name="$2"
 workspace="$CLOUDBEES_WORKSPACE"
@@ -31,37 +35,46 @@ mkdir -p "$outputs"
 cd "$workspace" || exit
 
 # Upload the flow
-curl --silent -X POST --upload-file "$flow_name.yaml" -H "content-type: application/x-yaml" "http://localhost:8080/api/v1/flows" > upload.json  || exit
-curl --silent -X PUT --upload-file "$flow_name.yaml" -H "content-type: application/x-yaml" "http://localhost:8080/api/v1/flows/$namespace/$flow_name" > upload.json || exit
-cat upload.json
+curl --silent -X POST --upload-file "$workspace/$flow_name.yaml" -H "content-type: application/x-yaml" "http://localhost:8080/api/v1/flows" > upload.json  || exit
+curl --silent -X PUT --upload-file "$workspace/$flow_name.yaml" -H "content-type: application/x-yaml" "http://localhost:8080/api/v1/flows/$namespace/$flow_name" > upload.json || exit
+# cat upload.json
 
 # Execute the flow
-curl --silent -X POST -H "Content-Type: multipart/form-data" "http://localhost:8080/api/v1/executions/$namespace/$flow_name" > execution.json || exit
-cat execution.json
-execution_id=$(cat execution.json | jq -r '.id')
+input_json="$PARAMETERS_JSON"
+# input_json='{ }'
+curl_cmd="curl --silent -X POST -H \"Content-Type: multipart/form-data\""
+# Loop through input keys
+for key in $(echo "$input_json" | jq -r '. | keys[]'); do
+    # Access the value for the current key
+    value=$(echo "$input_json" | jq -r ".[\"$key\"]")
+
+    # add the input to the curl command
+    curl_cmd="$curl_cmd --data-urlencode \"$key=$value\""
+done
+curl_cmd="$curl_cmd http://localhost:8080/api/v1/executions/$namespace/$flow_name"
+
+eval "$curl_cmd" > execution.json || exit
+
+# curl --silent -X POST "http://localhost:8080/api/v1/executions/$namespace/$flow_name" > execution.json || exit
+# cat execution.json
+execution_id=$(cat "execution.json" | jq -r '.id')
+
+# stream the logs
+echo ""
+echo "--- [$namespace/$flow_name] flow logs---"
+./stream-logs.sh "$execution_id" &
 
 # Watch the flow
-curl --silent "http://localhost:8080/api/v1/executions/$execution_id/follow" || exit
+curl --silent "http://localhost:8080/api/v1/executions/$execution_id/follow" > exec_follow.log || exit
 
-# Watch the logs
-curl --silent "http://localhost:8080/api/v1/logs/$execution_id" > logs.json || exit
-cat logs.json | jq -r '. | map("[\(.taskId)] \(.message)")'
-
-
-# curl --silent "http://localhost:8080/api/v1/logs/$execution_id/download" > logs.txt
-# cat logs.txt
 
 # Grab the final result
 curl --silent "http://localhost:8080/api/v1/executions/$execution_id" | jq > result.json || exit
-
 json_data=$(cat result.json)
 
-# Loop through output keys
+# Transfer the kestra flow outputs to cloudbees outputs
 for key in $(echo "$json_data" | jq -r '.outputs | keys[]'); do
-    # Access the value for the current key
     value=$(echo "$json_data" | jq -r ".outputs[\"$key\"]")
-
-    # Store the kestra output as a cloudbees step output
     echo "$value" > "$outputs/$key"
 done
 
