@@ -1,5 +1,5 @@
-# This is a basic workflow to help you get started with Actions
-
+apiVersion: automation.cloudbees.io/v1alpha1
+kind: workflow
 name: Publish action
 
 # Controls when the workflow will run
