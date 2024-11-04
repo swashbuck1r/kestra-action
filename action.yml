@@ -8,7 +8,7 @@ inputs:
     description: 'Namespace of the flow to run.'
     required: true
   flow:
-    description: 'Flow to run.'
+    description: 'Id of the flow to run.'
     required: true
 
 outputs:
@@ -30,7 +30,7 @@ runs:
       name: Build, publish, and optionally save Docker image as a tar archive.
       uses: docker://swashbuck1r/kestra-action:0.0.1
       with:
-        entrypoint: run
+        entrypoint: run.sh
         args: |
           ${{ inputs.namespace }}
           ${{ inputs.flow }}
