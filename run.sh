@@ -26,7 +26,6 @@ fi
 
 namespace="$1"
 flow_name="$2"
-workspace="$CLOUDBEES_WORKSPACE"
 
 /app/kestra server local > server.log &
 
@@ -46,7 +45,6 @@ until $(curl --output /dev/null --silent --head --fail http://localhost:8080); d
     sleep 5
 done
 
-cd "$workspace" || exit
-./upload-and-run.sh "$namespace" "$flow_name"
+/app/upload-and-run.sh "$namespace" "$flow_name"
 
 
