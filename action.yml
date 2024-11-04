@@ -28,7 +28,7 @@ runs:
   steps:
     - id: kestra
       name: Build, publish, and optionally save Docker image as a tar archive.
-      uses: docker://swashbuck1r/kestra-action:0.0.1
+      uses: docker://swashbuck1r/kestra-action:0.0.2
       with:
         entrypoint: run.sh
         args: |
