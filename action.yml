@@ -27,10 +27,10 @@ runs:
   using: composite
   steps:
     - id: kestra
-      name: Build, publish, and optionally save Docker image as a tar archive.
+      name: Run Kestra flow
       uses: docker://swashbuck1r/kestra-action:0.0.2
       with:
-        entrypoint: run.sh
+        entrypoint: /app/run.sh
         args: |
           ${{ inputs.namespace }}
           ${{ inputs.flow }}
