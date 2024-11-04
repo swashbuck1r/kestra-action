@@ -5,8 +5,8 @@ RUN apt-get update -y && \
     apt-get upgrade -y && \
     apt-get install -y --no-install-recommends jq
 
-COPY --chown=kestra:kestra upload-and-run.sh .
-COPY --chown=kestra:kestra run.sh .
+COPY --chown=kestra:kestra upload-and-run.sh /app/upload-and-run.sh
+COPY --chown=kestra:kestra run.sh /app/run.sh
 
 USER kestra
 ENTRYPOINT ["./run.sh"]
