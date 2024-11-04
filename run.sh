@@ -33,7 +33,7 @@ workspace="$CLOUDBEES_WORKSPACE"
 # wait for the server to start
 
 attempt_counter=0
-max_attempts=5
+max_attempts=10
 
 until $(curl --output /dev/null --silent --head --fail http://localhost:8080); do
     if [ ${attempt_counter} -eq ${max_attempts} ];then

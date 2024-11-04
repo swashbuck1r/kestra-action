@@ -1,0 +1,36 @@
+apiVersion: automation.cloudbees.io/v1alpha1
+kind: action
+name: 'Run Kestra flow'
+description: 'Run kestra flow.'
+
+inputs:
+  namespace:
+    description: 'Namespace of the flow to run.'
+    required: true
+  flow:
+    description: 'Flow to run.'
+    required: true
+
+outputs:
+  flow_outputs:
+    value: ${{ steps.kestra.outputs.flow_outputs }}
+    description: Outputs of the flow run.
+  flow_status:
+    value: ${{ steps.kestra.outputs.flow_state }}
+    description: Status of the flow run.
+  flow_execution:
+    value: ${{ steps.kestra.outputs.flow_execution }}
+    description: Execution details of the flow run.
+  
+
+runs:
+  using: composite
+  steps:
+    - id: kestra
+      name: Build, publish, and optionally save Docker image as a tar archive.
+      uses: docker://swashbuck1r/kestra-action:0.0.1
+      with:
+        entrypoint: run
+        args: |
+          ${{ inputs.namespace }}
+          ${{ inputs.flow }}
