@@ -28,7 +28,7 @@ runs:
   steps:
     - id: kestra
       name: Run Kestra flow
-      uses: docker://swashbuck1r/kestra-action:0.0.2
+      uses: docker://swashbuck1r/kestra-action:0.0.3
       with:
         entrypoint: /app/run.sh
         args: |
