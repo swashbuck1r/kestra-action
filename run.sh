@@ -26,6 +26,9 @@ fi
 
 namespace="$1"
 flow_name="$2"
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
+cd "$SCRIPT_DIR" || exit
 
 /app/kestra server local &> server.log &
 
