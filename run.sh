@@ -1,6 +1,9 @@
 #!/bin/bash
 
-set +x
+if [[ "$DEBUG" = "true" ]]; then
+  set -x
+fi
+
 namespace="company.team"
 flow_name="myflow"
 
@@ -30,20 +33,30 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 cd "$SCRIPT_DIR" || exit
 
-/app/kestra server local &> server.log &
+# verify the file exists
+if [[ ! -f "$CLOUDBEES_WORKSPACE/$flow_name.yaml" ]]; then
+  echo "Flow file not found: $flow_name.yaml"
+  exit 1
+fi
+
+if [[ "$DEBUG" = "true" ]]; then
+  /app/kestra server local &
+else
+  /app/kestra server local &> server.log &
+fi
 
 # wait for the server to start
-
 attempt_counter=0
 max_attempts=10
-
 until $(curl --output /dev/null --silent --head --fail http://localhost:8080); do
     if [ ${attempt_counter} -eq ${max_attempts} ];then
       echo "Server startup failed: max attempts reached"
       exit 1
     fi
 
-    # printf '.'
+    if [[ "$DEBUG" = "true" ]]; then
+      printf '.'
+    fi
     attempt_counter=$(($attempt_counter+1))
     sleep 5
 done

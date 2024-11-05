@@ -1,6 +1,8 @@
 #!/bin/bash
 
-set +x
+if [[ "$DEBUG" = "true" ]]; then
+  set -x
+fi
 
 if [[ -z "${1}" ]]; then
   echo "missing namespace argument"
@@ -23,7 +25,14 @@ if [[ -z "${CLOUDBEES_OUTPUTS}" ]]; then
 fi
 
 if [[ -z "${PARAMETERS_JSON}" ]]; then
-  PARAMETERS_JSON='{ }'
+  PARAMETERS_JSON='{}'
+fi
+
+curl_args=""
+if [[ "$DEBUG" = "true" ]]; then
+  curl_args=""
+else
+  curl_args="--silent"
 fi
 
 namespace="$1"
@@ -33,15 +42,34 @@ outputs="$CLOUDBEES_OUTPUTS"
 
 mkdir -p "$outputs"
 
+# Test if the flow exists, if so delete it
+curl $curl_args --fail "http://localhost:8080/api/v1/flows/$namespace/$flow_name" > /dev/null
+exit_code=$?
+if [[ $exit_code -eq 0 ]]; then
+  curl $curl_args -X DELETE "http://localhost:8080/api/v1/flows/$namespace/$flow_name" || exit
+fi
 # Upload the flow
-curl --silent -X POST --upload-file "$workspace/$flow_name.yaml" -H "content-type: application/x-yaml" "http://localhost:8080/api/v1/flows" > upload.json  || exit
-curl --silent -X PUT --upload-file "$workspace/$flow_name.yaml" -H "content-type: application/x-yaml" "http://localhost:8080/api/v1/flows/$namespace/$flow_name" > upload.json || exit
-# cat upload.json
+curl $curl_args -X POST --upload-file "$workspace/$flow_name.yaml" -H "content-type: application/x-yaml" "http://localhost:8080/api/v1/flows" > upload.json  || exit
 
+# verify the flow was created
+curl $curl_args --fail "http://localhost:8080/api/v1/flows/$namespace/$flow_name" > /dev/null
+exit_code=$?
+if [[ $exit_code -ne 0 ]]; then
+  cat upload.json | jq
+  >&2 echo "Failed to upload flow"
+  exit 1
+fi
+
+if [[ "$DEBUG" = "true" ]]; then
+  cat upload.json | jq
+fi
 # Execute the flow
 input_json="$PARAMETERS_JSON"
-# input_json='{ }'
-curl_cmd="curl --silent -X POST -H \"Content-Type: multipart/form-data\""
+if [[ "$DEBUG" = "true" ]]; then
+  echo "--- input_json ---"
+  echo "$input_json" | jq
+fi
+curl_cmd="curl $curl_args -X POST -H \"Content-Type: multipart/form-data\""
 # Loop through input keys
 for key in $(echo "$input_json" | jq -r '. | keys[]'); do
     # Access the value for the current key
@@ -51,25 +79,30 @@ for key in $(echo "$input_json" | jq -r '. | keys[]'); do
     curl_cmd="$curl_cmd --data-urlencode \"$key=$value\""
 done
 curl_cmd="$curl_cmd http://localhost:8080/api/v1/executions/$namespace/$flow_name"
-
 eval "$curl_cmd" > execution.json || exit
+if [[ "$DEBUG" = "true" ]]; then
+  echo "--- execution details ---"
+  cat "execution.json" | jq
+fi
 
-# curl --silent -X POST "http://localhost:8080/api/v1/executions/$namespace/$flow_name" > execution.json || exit
-# cat execution.json
 execution_id=$(cat "execution.json" | jq -r '.id')
 
 # stream the logs
 echo ""
-echo "--- [$namespace/$flow_name] flow logs---"
+echo "--- [$namespace/$flow_name] flow logs ---"
 ./stream-logs.sh "$execution_id" &
 
 # Watch the flow
-curl --silent "http://localhost:8080/api/v1/executions/$execution_id/follow" > exec_follow.log || exit
+curl $curl_args "http://localhost:8080/api/v1/executions/$execution_id/follow" > exec_follow.log || exit
 
 
 # Grab the final result
-curl --silent "http://localhost:8080/api/v1/executions/$execution_id" | jq > result.json || exit
+curl $curl_args "http://localhost:8080/api/v1/executions/$execution_id" | jq > result.json || exit
 json_data=$(cat result.json)
+if [[ "$DEBUG" = "true" ]]; then
+  echo "--- execution results ---"
+  cat "result.json" | jq
+fi
 
 # Transfer the kestra flow outputs to cloudbees outputs
 for key in $(echo "$json_data" | jq -r '.outputs | keys[]'); do

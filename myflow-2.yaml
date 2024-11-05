@@ -1,0 +1,28 @@
+id: myflow-2
+namespace: acme
+
+outputs:
+  - id: myvar1
+    type: STRING
+    value: "myoutput-val"
+
+tasks:
+  - id: hello
+    type: io.kestra.plugin.core.log.Log
+    message: MyFlow2! 🚀
+  - id: loop
+    type: io.kestra.core.tasks.scripts.Bash
+    inputFiles:
+      script.sh: |
+        echo "until loop2"
+        i=20
+        until [ $i == 1 ]
+        do
+            echo "countdown: $i secs";
+            i=$((i-1))
+            sleep 1
+        done
+        echo "i value is $i"
+        echo "loop terminated"
+    commands:
+      - /bin/bash script.sh
