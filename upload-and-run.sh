@@ -32,7 +32,6 @@ workspace="$CLOUDBEES_WORKSPACE"
 outputs="$CLOUDBEES_OUTPUTS"
 
 mkdir -p "$outputs"
-cd "$workspace" || exit
 
 # Upload the flow
 curl --silent -X POST --upload-file "$workspace/$flow_name.yaml" -H "content-type: application/x-yaml" "http://localhost:8080/api/v1/flows" > upload.json  || exit
